@@ -4,11 +4,13 @@ import spacy
 # Load the spaCy model
 nlp = spacy.load("en_core_web_sm")
 
+
 def count_objects(caption):
     doc = nlp(caption)
     objects = [chunk.text for chunk in doc.noun_chunks]
     print("These are the objects:", objects)
     return len(objects)
+
 
 def read_json_in_batches(filename, batch_size=100):
     with open(filename, 'r') as file:
@@ -17,6 +19,7 @@ def read_json_in_batches(filename, batch_size=100):
         for i in range(0, len(keys), batch_size):
             yield {k: data[k] for k in keys[i:i+batch_size]}
 
+
 def filter_captions(data, max_objects=3):
     filtered_data = {}
     for key, caption in data.items():
@@ -24,9 +27,11 @@ def filter_captions(data, max_objects=3):
             filtered_data[key] = caption
     return filtered_data
 
-def write_filtered_json(filename, data):
-    with open(filename, 'w') as file:
+
+def write_filtered_json(filename, data, mode='a'):
+    with open(filename, mode) as file:
         json.dump(data, file, indent=4)
+
 
 def test_caption_filtering():
     test_data = {
@@ -39,18 +44,32 @@ def test_caption_filtering():
     for key, caption in test_data.items():
         print(key, count_objects(caption))
 
+
 def main():
     # Uncomment the line below to run the test function
     # test_caption_filtering()
     input_filename = '../datasets/cap3d_captions.json'  # Adjusted path
     output_filename = '../filtered/filtered_cap3d_captions.json'  # Adjusted path
-    batch_size = 100
+    batch_size = 1000
+    write_batch_size = 10000
 
     filtered_data = {}
-    for batch in read_json_in_batches(input_filename, batch_size):
-        filtered_data.update(filter_captions(batch))
+    total_filtered_count = 0
 
-    write_filtered_json(output_filename, filtered_data)
+    for batch in read_json_in_batches(input_filename, batch_size):
+        filtered_batch = filter_captions(batch)
+        filtered_data.update(filtered_batch)
+        total_filtered_count += len(filtered_batch)
+
+        if total_filtered_count >= write_batch_size:
+            write_filtered_json(output_filename, filtered_data, mode='a')
+            filtered_data = {}
+            total_filtered_count = 0
+
+    # Write any remaining filtered data
+    if filtered_data:
+        write_filtered_json(output_filename, filtered_data, mode='a')
+
 
 if __name__ == '__main__':
     main()
