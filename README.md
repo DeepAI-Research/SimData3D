@@ -16,6 +16,10 @@ This `install.sh` script will install [GLiNER](https://github.com/urchade/GLiNER
 ```bash
 chmod +x install.sh
 ./install.sh
+
+OR 
+
+pip3 install gliner
 ```
 
 ## Clone
