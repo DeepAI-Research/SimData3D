@@ -22,6 +22,22 @@ OR
 pip3 install gliner
 ```
 
+## Data Filter
+
+To filter the data run the script in the filter folder.
+
+```bash
+python3 filter.py
+```
+
+To split cap3d_captions file into multiple other files, look into the filter folder and run:
+
+The following files will be saved into a prepare folder locally.
+
+```bash
+python3 split.py
+```
+
 ## Clone
 
 1. Clone the repository and navigate to the project directory:
