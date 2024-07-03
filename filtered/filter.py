@@ -18,7 +18,7 @@ class Cap3DObjectDetector:
         if not objects:
             objects = self._extract_noun_phrases(caption)
         
-        print("These are the objects:", objects)
+        # print("These are the objects:", objects)
         return objects
 
     def _extract_noun_phrases(self, text):
@@ -147,12 +147,12 @@ if __name__ == '__main__':
 
         if total_filtered_count >= write_batch_size or current_batch == total_batches:
             write_filtered_json(output_filename, filtered_data, first_batch=first_batch, last_batch=(current_batch == total_batches))
-            print(f"Wrote batch {current_batch}/{total_batches} with {total_filtered_count} filtered captions")
+            # print(f"Wrote batch {current_batch}/{total_batches} with {total_filtered_count} filtered captions")
             filtered_data = {}
             total_filtered_count = 0
             first_batch = False
 
-    print("Filtering and writing completed.")
+    # print("Filtering and writing completed.")
 
     # Optionally, you can keep the test function call if you want to run tests
     # test_caption_filtering()

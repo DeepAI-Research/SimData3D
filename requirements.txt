@@ -1,0 +1,10 @@
+requests
+fsspec
+celery
+redis
+huggingface_hub
+python-dotenv
+omegaconf
+tqdm
+gliner
+distributaur
