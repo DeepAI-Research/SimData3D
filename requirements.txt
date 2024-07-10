@@ -7,4 +7,4 @@ python-dotenv
 omegaconf
 tqdm
 gliner
-distributaur
+distributask

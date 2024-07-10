@@ -1,38 +1,37 @@
-
-from distributaur.distributaur import create_from_config
+from distributask.distributask import create_from_config
 from .filter import read_json_in_batches
 from .worker import run_job
 from tqdm import tqdm
 import time
 
-
 if __name__ == "__main__":
 
-    input_filename = 'datasets/cap3d_captions.json'
-    batch_size = 1000
+    input_filename = "datasets/cap3d_captions.json"
+    batch_size = 10000
 
-    distributaur = create_from_config()
+    distributask = create_from_config()
 
-    max_price = 0.1
-    max_nodes = 50
+    max_price = 0.25
+    max_nodes = 25
     docker_image = "antbaez/filter-worker:latest"
     module_name = "filtered.worker"
 
-    redis_client = distributaur.get_redis_connection()
+    redis_client = distributask.get_redis_connection()
 
-    rented_nodes = distributaur.rent_nodes(max_price, max_nodes, docker_image, module_name)
+    rented_nodes = distributask.rent_nodes(
+        max_price, max_nodes, docker_image, module_name
+    )
     print("Total nodes rented: ", len(rented_nodes))
 
-    distributaur.register_function(run_job)
+    distributask.register_function(run_job)
 
     while True:
         user_input = input("press r when workers are ready: ")
         if user_input == "r":
             break
 
-
     total_batches = 0
-    
+
     print("Sending tasks")
     tasks = []
 
@@ -43,32 +42,44 @@ if __name__ == "__main__":
     for i in range(num_batches):
 
         batch = json_batches[i]
-
         total_batches += 1
-        task = distributaur.execute_function("run_job", {
-            "batch_index" : total_batches,
-            "batch" : batch
-        })
+
+        print(total_batches)
+        task = distributask.execute_function(
+            "run_job", {"batch_index": total_batches, "batch": batch}
+        )
 
         tasks.append(task)
 
     first_task_done = False
     print("Tasks sent. Starting monitoring")
+
+    inactivity_log = {node["instance_id"]: 0 for node in rented_nodes}
+
+    start_time = time.time()
     with tqdm(total=len(tasks), unit="task") as pbar:
         while not all(task.ready() for task in tasks):
+
             current_tasks = sum([task.ready() for task in tasks])
             pbar.update(current_tasks - pbar.n)
-            if current_tasks > 0:
-                if not first_task_done:
-                    first_task_done = True
-                    first_task_start_time = time.time()
 
-                end_time = time.time()
-                elapsed_time = end_time - first_task_start_time
-                time_per_tasks = elapsed_time / current_tasks
-                time_left = time_per_tasks * (len(tasks) - current_tasks)
+            time.sleep(1)
 
-                pbar.set_postfix(
-                    elapsed=f"{elapsed_time:.2f}s", time_left=f"{time_left:.2f}"
-                )
-            time.sleep(2)
+            current_time = time.time()
+            if current_time - start_time > 60:
+                start_time = time.time()
+
+                for node in rented_nodes:
+                    log_response = distributask.get_node_log(node)
+                    if log_response.status_code == 200:
+                        try:
+                            last_msg = log_response.text.splitlines()[-1]
+                            if ("Task complete" in last_msg and inactivity_log[node["instance_id"]] == 0):
+                                inactivity_log[node["instance_id"]] = 1
+                            elif ("Task complete" in last_msg and inactivity_log[node["instance_id"]] == 1):
+                                distributask.terminate_nodes([node])
+                                print("node terminated")
+                            else:
+                                inactivity_log[node["instance_id"]] == 0
+                        except:
+                            pass
